@@ -239,7 +239,7 @@ public class UnionFileSystem extends FileSystem {
         final var allpaths = new LinkedHashSet<Path>();
         for (final var bp : basepaths) {
             final var dir = toRealPath(bp, path);
-            if (dir == notExistingPath || !Files.exists(dir)) continue;
+            if (dir == notExistingPath || Files.notExists(dir)) continue;
             final var isSimple = embeddedFileSystems.containsKey(bp);
             try (final var ds = Files.newDirectoryStream(dir, filter)) {
                 StreamSupport.stream(ds.spliterator(), false)
