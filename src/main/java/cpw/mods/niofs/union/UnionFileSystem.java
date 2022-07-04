@@ -179,7 +179,7 @@ public class UnionFileSystem extends FileSystem {
                 Path realPath = toRealPath(base, path);
                 if (realPath != notExistingPath) {
                     Optional<BasicFileAttributes> fileAttributes = this.getFileAttributes(realPath);
-                    if (fileAttributes.isPresent() && testFilter(realPath, base)) {
+                        if (fileAttributes.isPresent() && testFilter(realPath, base)) {
                         return (A) fileAttributes.get();
                     }
                 }
@@ -194,7 +194,13 @@ public class UnionFileSystem extends FileSystem {
         try {
             findFirstFiltered(p).ifPresentOrElse(path-> {
                 try {
-                    path.getFileSystem().provider().checkAccess(path, modes);
+                    if (modes.length == 0 && path.getFileSystem() == FileSystems.getDefault()) {
+                        if (!path.toFile().exists()) {
+                            throw new UncheckedIOException("No file found", new NoSuchFileException(p.toString()));
+                        }
+                    } else {
+                        path.getFileSystem().provider().checkAccess(path, modes);
+                    }
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
