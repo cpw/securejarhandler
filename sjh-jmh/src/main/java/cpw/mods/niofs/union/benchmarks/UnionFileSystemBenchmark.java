@@ -62,13 +62,13 @@ public class UnionFileSystemBenchmark {
 
     @Benchmark
     public void testNativeFileExistsNegative(Blackhole blackhole) throws Exception {
-        runNativeFileNotExists("ThisFileExists.txt", true);
-        runNativeFileNotExists("ThisFileExists2.txt", true);
+        runNativeFileNotExists("ThisFileExists.txt", false);
+        runNativeFileNotExists("ThisFileExists2.txt", false);
     }
     @Benchmark
     public void testNativeFileNotExistsNegative(Blackhole blackhole) throws Exception {
-        runNativeFileExists("ThisFileNotExists.txt", true);
-        runNativeFileExists("ThisFileNotExists2.txt", true);
+        runNativeFileExists("ThisFileNotExists.txt", false);
+        runNativeFileExists("ThisFileNotExists2.txt", false);
     }
 
     //    @Benchmark
