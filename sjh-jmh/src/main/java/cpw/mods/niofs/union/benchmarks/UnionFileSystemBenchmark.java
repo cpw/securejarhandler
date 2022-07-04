@@ -16,25 +16,30 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 @State(Scope.Benchmark)
 public class UnionFileSystemBenchmark {
     private static final UnionFileSystemProvider UFSP = (UnionFileSystemProvider) FileSystemProvider.installedProviders().stream().filter(fsp->fsp.getScheme().equals("union")).findFirst().orElseThrow(()->new IllegalStateException("Couldn't find UnionFileSystemProvider"));
     private static UnionFileSystem fileSystem;
+    private static UnionFileSystem dirFileSystem;
 
     @Setup
     public void setup() throws Exception {
-        var path1 = Paths.get("./src/jmh/resources/testjar1.jar");
-        var path2 = Paths.get("./src/jmh/resources/testjar2.jar");
-        var path3 = Paths.get("./src/jmh/resources/testjar3.jar");
+        var path1 = Paths.get("./src/main/resources/testjar1.jar");
+        var path2 = Paths.get("./src/main/resources/testjar2.jar");
+        var path3 = Paths.get("./src/main/resources/testjar3.jar");
         Map<String, List<Path>> properties = new HashMap<>();
         var additionalPaths = List.of(path2, path3);
         properties.put("additional", additionalPaths);
 
         fileSystem = (UnionFileSystem) UFSP.newFileSystem(path1, properties);
+        var dir1= Paths.get("src","main","resources","testrawdir").toAbsolutePath().normalize();
+        var dir2= Paths.get("src","main","resources","testrawdir2").toAbsolutePath().normalize();
+        dirFileSystem = (UnionFileSystem) UFSP.newFileSystem(dir1, Map.of("additional", List.of(dir2)));
     }
 
-    @Benchmark
+//    @Benchmark
     public void testFileExists(Blackhole blackhole) throws Exception {
         runExists("cpw/mods/niofs/union/UnionPath.class", true); //jar 1
         runExists("net/minecraftforge/client/event/GuiOpenEvent.class", true); //jar 2
@@ -45,33 +50,67 @@ public class UnionFileSystemBenchmark {
     }
 
     @Benchmark
+    public void testNativeFileExists(Blackhole blackhole) throws Exception {
+        runNativeFileExists("ThisFileExists.txt", true);
+        runNativeFileExists("ThisFileExists2.txt", true);
+    }
+    @Benchmark
+    public void testNativeFileNotExists(Blackhole blackhole) throws Exception {
+        runNativeFileNotExists("ThisFileNotExists.txt", true);
+        runNativeFileNotExists("ThisFileNotExists2.txt", true);
+    }
+
+    @Benchmark
+    public void testNativeFileExistsNegative(Blackhole blackhole) throws Exception {
+        runNativeFileNotExists("ThisFileExists.txt", true);
+        runNativeFileNotExists("ThisFileExists2.txt", true);
+    }
+    @Benchmark
+    public void testNativeFileNotExistsNegative(Blackhole blackhole) throws Exception {
+        runNativeFileExists("ThisFileNotExists.txt", true);
+        runNativeFileExists("ThisFileNotExists2.txt", true);
+    }
+
+    //    @Benchmark
     public void testDirectoryStream(Blackhole blackhole) throws Exception {
         runDirStream("cpw/mods/jarhandling", 5, blackhole); //jar 1
         runDirStream("net/minecraftforge/common", 72, blackhole); //jar 2
         runDirStream("cpw/mods/modlauncher/api", 34, blackhole); //jar 3
     }
 
-    @Benchmark
+//    @Benchmark
     public void testByteChannel(Blackhole blackhole) throws Exception {
         runByteChannel("cpw/mods/niofs/union/UnionPath.class", blackhole); //jar 1
         runByteChannel("net/minecraftforge/client/event/GuiOpenEvent.class", blackhole); //jar 2
         runByteChannel("cpw/mods/modlauncher/Launcher.class", blackhole); //jar 3
     }
 
-    @Benchmark
+//    @Benchmark
     public void testReadAttributes(Blackhole blackhole) throws Exception {
         runReadAttributes("cpw/mods/niofs/union/UnionPath.class", 9550, blackhole); //jar 1
         runReadAttributes("net/minecraftforge/client/event/GuiOpenEvent.class", 782, blackhole); //jar 2
         runReadAttributes("cpw/mods/modlauncher/Launcher.class", 12648, blackhole); //jar 3
     }
 
-    @Benchmark
+//    @Benchmark
     public void testCommonPathUtilities(Blackhole blackhole) throws Exception {
         var path = fileSystem.getPath("net/minecraftforge/client/event/GuiOpenEvent.class");
         blackhole.consume(path.getFileName());
         blackhole.consume(path.getParent());
         blackhole.consume(path.normalize());
         blackhole.consume(path.subpath(0, 3));
+    }
+
+    private static void runNativeFileExists(String pathString, boolean expected) throws Exception {
+        if (Files.exists(dirFileSystem.getPath(pathString)) != expected) {
+            throw new RuntimeException("Wrong exists status");
+        }
+    }
+
+    private static void runNativeFileNotExists(String pathString, boolean expected) throws Exception {
+        if (Files.notExists(dirFileSystem.getPath(pathString)) != expected) {
+            throw new RuntimeException("Wrong exists status");
+        }
     }
 
     private static void runExists(String pathString, boolean expected) throws Exception {
