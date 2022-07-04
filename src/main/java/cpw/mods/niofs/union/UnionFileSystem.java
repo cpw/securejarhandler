@@ -16,6 +16,26 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class UnionFileSystem extends FileSystem {
+    private static class NoSuchFileException extends java.nio.file.NoSuchFileException {
+        public NoSuchFileException(final String file) {
+            super(file);
+        }
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
+    }
+
+    private static class UncheckedIOException extends java.io.UncheckedIOException {
+        public UncheckedIOException(final IOException cause) {
+            super(cause);
+        }
+
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            return this;
+        }
+    }
     private final UnionPath root = new UnionPath(this, "/");
     private final UnionPath notExistingPath = new UnionPath(this, "/SNOWMAN");
     private final UnionFileSystemProvider provider;
@@ -154,8 +174,10 @@ public class UnionFileSystem extends FileSystem {
         for (Path p : this.basepaths) {
             Path realPath = toRealPath(p, path);
             if (realPath != notExistingPath && testFilter(realPath, p)) {
-                if (realPath.getFileSystem() == FileSystems.getDefault() && realPath.toFile().exists()) {
-                    return Optional.of(realPath);
+                if (realPath.getFileSystem() == FileSystems.getDefault()) {
+                    if (realPath.toFile().exists()) {
+                        return Optional.of(realPath);
+                    }
                 } else if (Files.exists(realPath)) {
                     return Optional.of(realPath);
                 }
@@ -196,7 +218,7 @@ public class UnionFileSystem extends FileSystem {
                 try {
                     if (modes.length == 0 && path.getFileSystem() == FileSystems.getDefault()) {
                         if (!path.toFile().exists()) {
-                            throw new UncheckedIOException("No file found", new NoSuchFileException(p.toString()));
+                            throw new UncheckedIOException(new NoSuchFileException(p.toString()));
                         }
                     } else {
                         path.getFileSystem().provider().checkAccess(path, modes);
@@ -205,7 +227,7 @@ public class UnionFileSystem extends FileSystem {
                     throw new UncheckedIOException(e);
                 }
             }, ()->{
-                throw new UncheckedIOException("No file found", new NoSuchFileException(p.toString()));
+                throw new UncheckedIOException(new NoSuchFileException(p.toString()));
             });
         } catch (UncheckedIOException e) {
             throw e.getCause();
