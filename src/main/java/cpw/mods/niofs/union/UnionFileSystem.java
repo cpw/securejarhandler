@@ -153,8 +153,12 @@ public class UnionFileSystem extends FileSystem {
     private Optional<Path> findFirstFiltered(final UnionPath path) {
         for (Path p : this.basepaths) {
             Path realPath = toRealPath(p, path);
-            if (realPath != notExistingPath && testFilter(realPath, p) && Files.exists(realPath)) {
-                return Optional.of(realPath);
+            if (realPath != notExistingPath && testFilter(realPath, p)) {
+                if (realPath.getFileSystem() == FileSystems.getDefault() && realPath.toFile().exists()) {
+                    return Optional.of(realPath);
+                } else if (Files.exists(realPath)) {
+                    return Optional.of(realPath);
+                }
             }
         }
         return Optional.empty();

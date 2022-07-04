@@ -16,13 +16,13 @@ import java.nio.file.spi.FileSystemProvider;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Predicate;
 
 @State(Scope.Benchmark)
 public class UnionFileSystemBenchmark {
     private static final UnionFileSystemProvider UFSP = (UnionFileSystemProvider) FileSystemProvider.installedProviders().stream().filter(fsp->fsp.getScheme().equals("union")).findFirst().orElseThrow(()->new IllegalStateException("Couldn't find UnionFileSystemProvider"));
     private static UnionFileSystem fileSystem;
     private static UnionFileSystem dirFileSystem;
+    private static Path rawdir;
 
     @Setup
     public void setup() throws Exception {
@@ -34,9 +34,9 @@ public class UnionFileSystemBenchmark {
         properties.put("additional", additionalPaths);
 
         fileSystem = (UnionFileSystem) UFSP.newFileSystem(path1, properties);
-        var dir1= Paths.get("src","main","resources","testrawdir").toAbsolutePath().normalize();
+        rawdir = Paths.get("src","main","resources","testrawdir").toAbsolutePath().normalize();
         var dir2= Paths.get("src","main","resources","testrawdir2").toAbsolutePath().normalize();
-        dirFileSystem = (UnionFileSystem) UFSP.newFileSystem(dir1, Map.of("additional", List.of(dir2)));
+        dirFileSystem = (UnionFileSystem) UFSP.newFileSystem(rawdir, Map.of("additional", List.of(dir2)));
     }
 
 //    @Benchmark
@@ -60,18 +60,18 @@ public class UnionFileSystemBenchmark {
         runNativeFileNotExists("ThisFileNotExists2.txt", true);
     }
 
-    @Benchmark
+   //@Benchmark
     public void testNativeFileExistsNegative(Blackhole blackhole) throws Exception {
         runNativeFileNotExists("ThisFileExists.txt", false);
         runNativeFileNotExists("ThisFileExists2.txt", false);
     }
-    @Benchmark
+    //@Benchmark
     public void testNativeFileNotExistsNegative(Blackhole blackhole) throws Exception {
         runNativeFileExists("ThisFileNotExists.txt", false);
         runNativeFileExists("ThisFileNotExists2.txt", false);
     }
 
-    //    @Benchmark
+    //@Benchmark
     public void testDirectoryStream(Blackhole blackhole) throws Exception {
         runDirStream("cpw/mods/jarhandling", 5, blackhole); //jar 1
         runDirStream("net/minecraftforge/common", 72, blackhole); //jar 2
