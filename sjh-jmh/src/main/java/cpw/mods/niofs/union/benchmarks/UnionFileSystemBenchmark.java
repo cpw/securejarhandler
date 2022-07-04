@@ -26,16 +26,16 @@ public class UnionFileSystemBenchmark {
 
     @Setup
     public void setup() throws Exception {
-        var path1 = Paths.get("./src/main/resources/testjar1.jar");
-        var path2 = Paths.get("./src/main/resources/testjar2.jar");
-        var path3 = Paths.get("./src/main/resources/testjar3.jar");
+        var path1 = Paths.get("./src/testjars/testjar1.jar");
+        var path2 = Paths.get("./src/testjars/testjar2.jar");
+        var path3 = Paths.get("./src/testjars/testjar3.jar");
         Map<String, List<Path>> properties = new HashMap<>();
         var additionalPaths = List.of(path2, path3);
         properties.put("additional", additionalPaths);
 
         fileSystem = (UnionFileSystem) UFSP.newFileSystem(path1, properties);
-        rawdir = Paths.get("src","main","resources","testrawdir").toAbsolutePath().normalize();
-        var dir2= Paths.get("src","main","resources","testrawdir2").toAbsolutePath().normalize();
+        rawdir = Paths.get("src","testrawdir").toAbsolutePath().normalize();
+        var dir2= Paths.get("src", "testrawdir2").toAbsolutePath().normalize();
         dirFileSystem = (UnionFileSystem) UFSP.newFileSystem(rawdir, Map.of("additional", List.of(dir2)));
     }
 

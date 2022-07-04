@@ -33,10 +33,11 @@ task jmh(type: JavaExec, dependsOn: sourceSets.main.output) {
     args    '-bm', 'avgt'  // benchmark mode
     args    '-r', '5s' // iteration time
     args    '-w', '5s' // warmup time
-    args    '-wi', '3' // warmup iterations
+    args    '-wi', '2' // warmup iterations
     args    '-prof', 'stack' // profilers
     args    '-tu', 'ns' // time unit
-    args    '-f', '3' // forks
+    args    '-i', '2' // iterations
+    args    '-f', '1' // forks
     args    '-rff', project.file("${rootProject.buildDir}/jmh_results.txt")  // results file
     args    'cpw.mods.niofs.union.benchmarks.UnionFileSystemBenchmark'
 }
