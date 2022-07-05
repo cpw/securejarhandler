@@ -46,16 +46,6 @@ public class TestUnionFS {
     }
 
     @Test
-    public void testZipFSExists() throws Throwable {
-        var hackfield = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
-        hackfield.setAccessible(true);
-        MethodHandles.Lookup hack = (MethodHandles.Lookup) hackfield.get(null);
-
-        var clz = Class.forName("jdk.nio.zipfs.ZipPath");
-        var mh = hack.findVirtual(clz, "exists", MethodType.methodType(boolean.class));
-        var obj = mh.invoke();
-    }
-    @Test
     void testUnionFileSystemJar() throws Throwable {
         final var jar1 = Paths.get("sjh-jmh","src", "testjars", "testjar1.jar").toAbsolutePath().normalize();
         final var jar2 = Paths.get("sjh-jmh","src", "testjars", "testjar2.jar").toAbsolutePath().normalize();
