@@ -26,6 +26,7 @@ task jmh(type: JavaExec, dependsOn: sourceSets.main.output) {
     jvmArgs= [
         '-p', sourceSets.main.runtimeClasspath.asPath,
         '--add-modules', 'ALL-MODULE-PATH',
+        '--add-opens', 'java.base/java.lang.invoke=cpw.mods.securejarhandler',
         '--add-exports', 'cpw.mods.securejarhandler/cpw.mods.niofs.union=ALL-UNNAMED'
     ]
     classpath = files(configurations.jmhOnly.asPath)

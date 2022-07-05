@@ -26,9 +26,9 @@ public class UnionFileSystemBenchmark {
 
     @Setup
     public void setup() throws Exception {
-        var path1 = Paths.get("./src/testjars/testjar1.jar");
-        var path2 = Paths.get("./src/testjars/testjar2.jar");
-        var path3 = Paths.get("./src/testjars/testjar3.jar");
+        var path1 = Paths.get("src","testjars","testjar1.jar").toAbsolutePath().normalize();
+        var path2 = Paths.get("src","testjars","testjar2.jar").toAbsolutePath().normalize();
+        var path3 = Paths.get("src","testjars","testjar3.jar").toAbsolutePath().normalize();
         Map<String, List<Path>> properties = new HashMap<>();
         var additionalPaths = List.of(path2, path3);
         properties.put("additional", additionalPaths);
@@ -39,11 +39,14 @@ public class UnionFileSystemBenchmark {
         dirFileSystem = (UnionFileSystem) UFSP.newFileSystem(rawdir, Map.of("additional", List.of(dir2)));
     }
 
-//    @Benchmark
-    public void testFileExists(Blackhole blackhole) throws Exception {
+    @Benchmark
+    public void testJarFileExists(Blackhole blackhole) throws Exception {
         runExists("cpw/mods/niofs/union/UnionPath.class", true); //jar 1
         runExists("net/minecraftforge/client/event/GuiOpenEvent.class", true); //jar 2
         runExists("cpw/mods/modlauncher/Launcher.class", true); //jar 3
+    }
+    @Benchmark
+    public void testJarFileNotExists(Blackhole blackhole) throws Exception {
         runExists("cpw/mods/modlauncher/api/NoIDontExist.class", false);
         runExists("net/minecraftforge/client/nonexistent/Nope.class", false);
         runExists("Missing.class", false);
@@ -53,25 +56,29 @@ public class UnionFileSystemBenchmark {
     public void testNativeFileExists(Blackhole blackhole) throws Exception {
         runNativeFileExists("ThisFileExists.txt", true);
         runNativeFileExists("ThisFileExists2.txt", true);
+        runNativeFileExists("ThisFileExists3.txt", true);
     }
     @Benchmark
     public void testNativeFileNotExists(Blackhole blackhole) throws Exception {
         runNativeFileNotExists("ThisFileNotExists.txt", true);
         runNativeFileNotExists("ThisFileNotExists2.txt", true);
+        runNativeFileNotExists("ThisFileNotExists3.txt", true);
     }
 
-   //@Benchmark
+//   @Benchmark
     public void testNativeFileExistsNegative(Blackhole blackhole) throws Exception {
         runNativeFileNotExists("ThisFileExists.txt", false);
         runNativeFileNotExists("ThisFileExists2.txt", false);
+       runNativeFileNotExists("ThisFileExists3.txt", false);
     }
-    //@Benchmark
+//    @Benchmark
     public void testNativeFileNotExistsNegative(Blackhole blackhole) throws Exception {
         runNativeFileExists("ThisFileNotExists.txt", false);
         runNativeFileExists("ThisFileNotExists2.txt", false);
+        runNativeFileExists("ThisFileNotExists3.txt", false);
     }
 
-    //@Benchmark
+//    @Benchmark
     public void testDirectoryStream(Blackhole blackhole) throws Exception {
         runDirStream("cpw/mods/jarhandling", 5, blackhole); //jar 1
         runDirStream("net/minecraftforge/common", 72, blackhole); //jar 2

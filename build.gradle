@@ -87,11 +87,27 @@ dependencyUpdates {
 compileJava {
     sourceCompatibility = JavaVersion.VERSION_16
     targetCompatibility = JavaVersion.VERSION_16
+    options.compilerArgs += [
+            '-Xlint:unchecked',
+            '--add-exports=java.base/sun.security.util=cpw.mods.securejarhandler',
+    ]
 }
 
 test {
     //exclude '**/*'
     useJUnitPlatform()
+    jvmArgs += [
+            '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED'
+    ]
+}
+
+compileTestJava {
+    sourceCompatibility = JavaVersion.VERSION_16
+    targetCompatibility = JavaVersion.VERSION_16
+    options.compilerArgs += [
+            '--add-modules=jdk.zipfs',
+            '--add-exports=jdk.zipfs/jdk.nio.zipfs=ALL-UNNAMED'
+    ]
 }
 
 group = 'cpw.mods'
@@ -115,13 +131,6 @@ changelog {
 task sourcesJar(type: Jar) {
     archiveClassifier = 'sources'
     from sourceSets.main.allSource
-}
-
-tasks.named('compileJava') {
-    options.compilerArgs += [
-            '-Xlint:unchecked',
-            '--add-exports=java.base/sun.security.util=cpw.mods.securejarhandler'
-            ]
 }
 
 //jmh {

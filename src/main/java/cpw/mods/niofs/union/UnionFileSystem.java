@@ -3,6 +3,9 @@ package cpw.mods.niofs.union;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.nio.channels.SeekableByteChannel;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -16,6 +19,19 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class UnionFileSystem extends FileSystem {
+    private static final MethodHandle ZIPFS_EXISTS;
+    static {
+        try {
+            var hackfield = MethodHandles.Lookup.class.getDeclaredField("IMPL_LOOKUP");
+            hackfield.setAccessible(true);
+            MethodHandles.Lookup hack = (MethodHandles.Lookup) hackfield.get(null);
+
+            var clz = Class.forName("jdk.nio.zipfs.ZipPath");
+            ZIPFS_EXISTS = hack.findSpecial(clz, "exists", MethodType.methodType(boolean.class), clz);
+        } catch (NoSuchFieldException | IllegalAccessException | ClassNotFoundException | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
     private static class NoSuchFileException extends java.nio.file.NoSuchFileException {
         public NoSuchFileException(final String file) {
             super(file);
@@ -156,7 +172,11 @@ public class UnionFileSystem extends FileSystem {
 
     private Optional<BasicFileAttributes> getFileAttributes(final Path path) {
         try {
-            return Optional.of(path.getFileSystem().provider().readAttributes(path, BasicFileAttributes.class));
+            if (path.getFileSystem() == FileSystems.getDefault() && !path.toFile().exists()) {
+                return Optional.empty();
+            } else {
+                return Optional.of(path.getFileSystem().provider().readAttributes(path, BasicFileAttributes.class));
+            }
         } catch (IOException e) {
             return Optional.empty();
         }
@@ -170,12 +190,23 @@ public class UnionFileSystem extends FileSystem {
                 .findFirst();
     }
 
+    private static boolean zipFsExists(Path path) {
+        try {
+            return (boolean) ZIPFS_EXISTS.invoke(path);
+        } catch (Throwable t) {
+            throw new IllegalStateException(t);
+        }
+    }
     private Optional<Path> findFirstFiltered(final UnionPath path) {
         for (Path p : this.basepaths) {
             Path realPath = toRealPath(p, path);
             if (realPath != notExistingPath && testFilter(realPath, p)) {
                 if (realPath.getFileSystem() == FileSystems.getDefault()) {
                     if (realPath.toFile().exists()) {
+                        return Optional.of(realPath);
+                    }
+                } else if (realPath.getFileSystem().provider().getScheme().equals("jar")) {
+                    if (zipFsExists(realPath)) {
                         return Optional.of(realPath);
                     }
                 } else if (Files.exists(realPath)) {
@@ -267,7 +298,13 @@ public class UnionFileSystem extends FileSystem {
         final var allpaths = new LinkedHashSet<Path>();
         for (final var bp : basepaths) {
             final var dir = toRealPath(bp, path);
-            if (dir == notExistingPath || Files.notExists(dir)) continue;
+            if (dir == notExistingPath) {
+                continue;
+            } else if (dir.getFileSystem() == FileSystems.getDefault() && !dir.toFile().exists()) {
+                continue;
+            } else if (Files.notExists(dir)) {
+                continue;
+            }
             final var isSimple = embeddedFileSystems.containsKey(bp);
             try (final var ds = Files.newDirectoryStream(dir, filter)) {
                 StreamSupport.stream(ds.spliterator(), false)
